@@ -214,17 +214,68 @@ setsebool -P nis_enabled 1
 nis_enabled --> on
 varnishd_connect_any --> off
 ```
-Nginx запустился
+Nginx запустился. 
+Возвращаем значение `setsebool -P nis_enabled 0`
 
 
 ### Добавление нестандартного порта в имеющийся тип:
+Проверяем разрешенные порты: 
+```
+[root@bash ~]# semanage port -l | grep -w http_port_t
+http_port_t                    tcp      80, 81, 443, 488, 8008, 8009, 8443, 9000
+[root@bash ~]# 
+```
+Добавляем нестандартный порт 8111 в список `http_port_t`:
+```
+[root@bash ~]# semanage port -a -t http_port_t -p tcp 8111
+[root@bash ~]# semanage port -l | grep -w http_port_t
+http_port_t                    tcp      8111, 80, 81, 443, 488, 8008, 8009, 8443, 9000
+[root@bash ~]# 
+```
 
+Проверяем работу Nginx: 
+```
+[root@bash ~]# systemctl status nginx
+● nginx.service - nginx - high performance web server
+   Loaded: loaded (/usr/lib/systemd/system/nginx.service; disabled; vendor preset: disabled)
+   Active: active (running) since Вс 2021-03-28 15:48:48 UTC; 2s ago
+     Docs: http://nginx.org/en/docs/
+  Process: 14000 ExecStop=/bin/sh -c /bin/kill -s TERM $(/bin/cat /var/run/nginx.pid) (code=exited, status=0/SUCCESS)
+  Process: 14004 ExecStart=/usr/sbin/nginx -c /etc/nginx/nginx.conf (code=exited, status=0/SUCCESS)
+ Main PID: 14005 (nginx)
 
+```
+Удаляем порт из разрешенных:
+```
+[root@bash ~]# semanage port -d -t http_port -p tcp 8111
+```
 
+### Формирование и установка модуля SELinux:
+Формирование модуля SELinux утилитой audit2allow: 
+```
+[root@bash ~]# ausearch -c 'nginx' --raw | audit2allow -M my-nginx
+```
+Применяем созданный модуль и смотрим вывод списка модулей: 
 
-### Формирование и установка модуля SELinux
-
-
+```
+[root@bash ~]# semodule -i my-nginx.pp
+[root@bash ~]# semodule --list-modules=full | grep my-nginx
+400 my-nginx          pp
+```
+Проверяем что Nginx запустился: 
+```
+[root@bash ~]# systemctl restart nginx
+[root@bash ~]# systemctl status nginx
+● nginx.service - nginx - high performance web server
+   Loaded: loaded (/usr/lib/systemd/system/nginx.service; disabled; vendor preset: disabled)
+   Active: active (running) since Вс 2021-03-28 16:00:53 UTC; 2s ago
+     Docs: http://nginx.org/en/docs/
+  Process: 14225 ExecStart=/usr/sbin/nginx -c /etc/nginx/nginx.conf (code=exited, status=0/SUCCESS)
+ Main PID: 14226 (nginx)
+   CGroup: /system.slice/nginx.service
+           ├─14226 nginx: master process /usr/sbin/nginx -c /etc/nginx/nginx.conf
+           └─14227 nginx: worker process
+```
 
 #### Troubleshooting 
 

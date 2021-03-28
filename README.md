@@ -70,56 +70,6 @@ Job for nginx.service failed because the control process exited with error code.
   <summary>Вывод sealert:</summary>
 
 ```
-[root@bash ~]# sealert -a /var/log/audit/audit.log
-100% done
-found 2 alerts in /var/log/audit/audit.log
---------------------------------------------------------------------------------
-
-SELinux запрещает /usr/sbin/nginx доступ name_bind к tcp_socket port 8000.
-
-*****  Модуль catchall предлагает (точность 100.)  ***************************
-
-Если вы считаете, что nginx должно быть разрешено name_bind доступ к port 8000 tcp_socket по умолчанию.
-То рекомендуется создать отчет об ошибке.
-Чтобы разрешить доступ, можно создать локальный модуль политики.
-Сделать
-allow this access for now by executing:
-# ausearch -c 'nginx' --raw | audit2allow -M my-nginx
-# semodule -i my-nginx.pp
-
-
-Дополнительные сведения:
-Исходный контекст             system_u:system_r:httpd_t:s0
-Целевой контекст              system_u:object_r:soundd_port_t:s0
-Целевые объекты               port 8000 [ tcp_socket ]
-Источник                      nginx
-Путь к источнику              /usr/sbin/nginx
-Порт                          8000
-Узел                          <Unknown>
-Исходные пакеты RPM           nginx-1.18.0-2.el7.ngx.x86_64
-Целевые пакеты RPM            
-Пакет регламента              selinux-policy-3.13.1-268.el7_9.2.noarch
-SELinux активен               True
-Тип регламента                targeted
-Режим                         Enforcing
-Имя узла                      bash
-Платформа                     Linux bash 3.10.0-1127.el7.x86_64 #1 SMP Tue Mar
-                              31 23:36:51 UTC 2020 x86_64 x86_64
-Счетчик уведомлений           4
-Впервые обнаружено            2021-03-28 10:51:56 UTC
-В последний раз               2021-03-28 11:47:42 UTC
-Локальный ID                  72853173-5e76-4dca-a183-5a0d91fd5c07
-
-Построчный вывод сообщений аудита
-type=AVC msg=audit(1616932062.708:497): avc:  denied  { name_bind } for  pid=13500 comm="nginx" src=8000 scontext=system_u:system_r:httpd_t:s0 tcontext=system_u:object_r:soundd_port_t:s0 tclass=tcp_socket permissive=0
-
-
-type=SYSCALL msg=audit(1616932062.708:497): arch=x86_64 syscall=bind success=no exit=EACCES a0=6 a1=555e5b303e28 a2=10 a3=7fff567bf630 items=0 ppid=1 pid=13500 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm=nginx exe=/usr/sbin/nginx subj=system_u:system_r:httpd_t:s0 key=(null)
-
-Hash: nginx,httpd_t,soundd_port_t,tcp_socket,name_bind
-
---------------------------------------------------------------------------------
-
 SELinux запрещает /usr/sbin/nginx доступ name_bind к tcp_socket port 8111.
 
 *****  Модуль bind_ports предлагает (точность 92.2)  *************************
@@ -166,19 +116,18 @@ SELinux активен               True
 Имя узла                      bash
 Платформа                     Linux bash 3.10.0-1127.el7.x86_64 #1 SMP Tue Mar
                               31 23:36:51 UTC 2020 x86_64 x86_64
-Счетчик уведомлений           3
+Счетчик уведомлений           7
 Впервые обнаружено            2021-03-28 11:55:56 UTC
-В последний раз               2021-03-28 12:42:49 UTC
-Локальный ID                  02e12b2d-a42a-4386-b066-b72be02da937
+В последний раз               2021-03-28 16:07:05 UTC
+Локальный ID                  68113768-1fd1-44bb-a0ef-6bba5a3be024
 
 Построчный вывод сообщений аудита
-type=AVC msg=audit(1616935369.886:570): avc:  denied  { name_bind } for  pid=13783 comm="nginx" src=8111 scontext=system_u:system_r:httpd_t:s0 tcontext=system_u:object_r:unreserved_port_t:s0 tclass=tcp_socket permissive=0
+type=AVC msg=audit(1616947625.514:648): avc:  denied  { name_bind } for  pid=14369 comm="nginx" src=8111 scontext=system_u:system_r:httpd_t:s0 tcontext=system_u:object_r:unreserved_port_t:s0 tclass=tcp_socket permissive=0
 
 
-type=SYSCALL msg=audit(1616935369.886:570): arch=x86_64 syscall=bind success=no exit=EACCES a0=6 a1=55cbd0b8be28 a2=10 a3=7fff9d8d59f0 items=0 ppid=1 pid=13783 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm=nginx exe=/usr/sbin/nginx subj=system_u:system_r:httpd_t:s0 key=(null)
+type=SYSCALL msg=audit(1616947625.514:648): arch=x86_64 syscall=bind success=no exit=EACCES a0=6 a1=55e412393e28 a2=10 a3=7ffd23a12d80 items=0 ppid=1 pid=14369 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm=nginx exe=/usr/sbin/nginx subj=system_u:system_r:httpd_t:s0 key=(null)
 
 Hash: nginx,httpd_t,unreserved_port_t,tcp_socket,name_bind
-
 ```
 </details>
 

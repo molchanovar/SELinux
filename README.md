@@ -182,7 +182,7 @@ http_port_t                    tcp      8111, 80, 81, 443, 488, 8008, 8009, 8443
 [root@bash ~]# 
 ```
 
-Проверяем работу Nginx: 
+Проверяем работу Nginx и убеждаемся что все ОК: 
 ```
 [root@bash ~]# systemctl status nginx
 ● nginx.service - nginx - high performance web server
@@ -225,6 +225,11 @@ http_port_t                    tcp      8111, 80, 81, 443, 488, 8008, 8009, 8443
            ├─14226 nginx: master process /usr/sbin/nginx -c /etc/nginx/nginx.conf
            └─14227 nginx: worker process
 ```
+В конце удаляем модуль из списка:
+```
+[root@bash ~]# semodule -r my-nginx
+```
+
 
 #### Troubleshooting 
 

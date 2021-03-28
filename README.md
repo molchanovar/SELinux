@@ -10,7 +10,7 @@
 Сдать README с описанием каждого решения (скриншоты и демонстрация приветствуются).
 
 
-### Часть I Подготовка
+### Часть I. Запустить nginx на нестандартном порту 3-мя разными способами:
 
 Ставим пакеты для работы с SELinux: 
 ```
@@ -182,6 +182,8 @@ Hash: nginx,httpd_t,unreserved_port_t,tcp_socket,name_bind
 ```
 </details>
 
+### Переключатели setsebool:
+
 Видим одно из решений предложенных SELinux: 
 ```
 SELinux запрещает /usr/sbin/nginx доступ name_bind к tcp_socket port 8111.
@@ -201,7 +203,17 @@ setsebool -P nis_enabled 1
 ● nginx.service - nginx - high performance web server
    Loaded: loaded (/usr/lib/systemd/system/nginx.service; disabled; vendor preset: disabled)
    Active: **active (running)** since Вс 2021-03-28 13:05:59 UTC; 11s ago
+   
+[root@bash ~]# getsebool -a | grep nis             
+**nis_enabled --> on**
+varnishd_connect_any --> off
 ```
+
+
+### Добавление нестандартного порта в имеющийся тип:
+
+### Формирование и установка модуля SELinux
+
 
 
 #### Troubleshooting 

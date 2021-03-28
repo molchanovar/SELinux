@@ -10,7 +10,7 @@
 Сдать README с описанием каждого решения (скриншоты и демонстрация приветствуются).
 
 
-### Часть I 
+### Часть I Подготовка
 
 Ставим пакеты для работы с SELinux: 
 ```
@@ -22,7 +22,7 @@ yum install policycoreutils-python setroubleshoot setools-console
 3. **setools-console** - предоставляет инструменты для мониторинга логов аудита, политики запросов и управления контекстом файлов.
 
 Ставим nginx + настраиваем его на прослушивание нестандартного порта (например, **8111**): 
-Репозиторий + установка + правка конфига:
+Репозиторий + установка + правка конфига + попытка запуска:
 ```
 cat >/etc/yum.repos.d/nginx.repo <<EOF
 [nginx]
@@ -38,9 +38,13 @@ EOF
 yum -y install nginx
 
 sed -i '2s/listen       80;/listen       8111;/g' /etc/nginx/conf.d/default.conf
+
+systemctl start nginx
 ```
 
 
+
+#### Troubleshooting 
 
 
 

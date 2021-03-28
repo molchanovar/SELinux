@@ -32,16 +32,12 @@ gpgcheck=1
 enabled=1
 gpgkey=https://nginx.org/keys/nginx_signing.key
 module_hotfixes=true
-
 EOF
 
 yum -y install nginx
-
 sed -i '2s/listen       80;/listen       8111;/g' /etc/nginx/conf.d/default.conf
-
 systemctl start nginx
 ```
-
 
 
 #### Troubleshooting 

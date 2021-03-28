@@ -10,7 +10,7 @@
 Сдать README с описанием каждого решения (скриншоты и демонстрация приветствуются).
 
 
-### Часть I. Запустить nginx на нестандартном порту 3-мя разными способами:
+## Часть I. Запустить nginx на нестандартном порту 3-мя разными способами:
 
 Ставим пакеты для работы с SELinux: 
 ```
@@ -46,7 +46,7 @@ Job for nginx.service failed because the control process exited with error code.
 [root@bash ~]# systemctl status nginx
 ● nginx.service - nginx - high performance web server
    Loaded: loaded (/usr/lib/systemd/system/nginx.service; disabled; vendor preset: disabled)
-   Active: **failed** (Result: exit-code) since Вс 2021-03-28 12:42:49 UTC; 4s ago
+   Active: failed (Result: exit-code) since Вс 2021-03-28 12:42:49 UTC; 4s ago
      Docs: http://nginx.org/en/docs/
   Process: 13752 ExecStop=/bin/sh -c /bin/kill -s TERM $(/bin/cat /var/run/nginx.pid) (code=exited, status=0/SUCCESS)
   Process: 13783 ExecStart=/usr/sbin/nginx -c /etc/nginx/nginx.conf (code=exited, status=1/FAILURE)
@@ -193,7 +193,7 @@ SELinux запрещает /usr/sbin/nginx доступ name_bind к tcp_socket 
 
 setsebool -P nis_enabled 1
 ```
-Переключаем setsebool и запускаем NGINX
+Переключаем setsebool (с флагом -P изменения вносятся на постоянной основе) и запускаем NGINX 
 ```
 [root@bash ~]# setsebool -P nis_enabled 1
 [root@bash ~]# systemctl restart nginx
@@ -202,15 +202,25 @@ setsebool -P nis_enabled 1
 [root@bash ~]# systemctl status nginx
 ● nginx.service - nginx - high performance web server
    Loaded: loaded (/usr/lib/systemd/system/nginx.service; disabled; vendor preset: disabled)
-   Active: **active (running)** since Вс 2021-03-28 13:05:59 UTC; 11s ago
+   Active: active (running) since Вс 2021-03-28 13:05:59 UTC; 11s ago
+  Process: 13752 ExecStop=/bin/sh -c /bin/kill -s TERM $(/bin/cat /var/run/nginx.pid) (code=exited, status=0/SUCCESS)
+  Process: 13897 ExecStart=/usr/sbin/nginx -c /etc/nginx/nginx.conf (code=exited, status=0/SUCCESS)
+ Main PID: 13898 (nginx)
+   CGroup: /system.slice/nginx.service
+           ├─13898 nginx: master process /usr/sbin/nginx -c /etc/nginx/nginx.conf
+           └─13899 nginx: worker process
    
 [root@bash ~]# getsebool -a | grep nis             
-**nis_enabled --> on**
+nis_enabled --> on
 varnishd_connect_any --> off
 ```
+Nginx запустился
 
 
 ### Добавление нестандартного порта в имеющийся тип:
+
+
+
 
 ### Формирование и установка модуля SELinux
 

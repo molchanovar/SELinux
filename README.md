@@ -231,8 +231,50 @@ http_port_t                    tcp      8111, 80, 81, 443, 488, 8008, 8009, 8443
 ```
 
 
-#### Troubleshooting 
+## Часть II
+Ошибки в логе SELinux на DNS Server'е (/var/log/audit/audit.log):
+```
+type=USER_AUTH msg=audit(1616970898.538:1965): pid=25733 uid=0 auid=1000 ses=6 subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 msg='op=PAM:authentication grantors=pam_rootok acct="root" exe="/usr/bin/su" hostname=ns01 addr=? terminal=pts/0 res=success'
+type=USER_ACCT msg=audit(1616970898.538:1966): pid=25733 uid=0 auid=1000 ses=6 subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 msg='op=PAM:accounting grantors=pam_succeed_if acct="root" exe="/usr/bin/su" hostname=ns01 addr=? terminal=pts/0 res=success'
+type=CRED_ACQ msg=audit(1616970898.538:1967): pid=25733 uid=0 auid=1000 ses=6 subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 msg='op=PAM:setcred grantors=pam_rootok acct="root" exe="/usr/bin/su" hostname=ns01 addr=? terminal=pts/0 res=success'
+type=USER_START msg=audit(1616970898.543:1968): pid=25733 uid=0 auid=1000 ses=6 subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 msg='op=PAM:session_open grantors=pam_keyinit,pam_limits,pam_systemd,pam_unix,pam_xauth acct="root" exe="/usr/bin/su" hostname=ns01 addr=? terminal=pts/0 res=success'
+type=AVC msg=audit(1616971239.425:1969): avc:  denied  { create } for  pid=5181 comm="isc-worker0000" name="named.ddns.lab.view1.jnl" scontext=system_u:system_r:named_t:s0 tcontext=system_u:object_r:etc_t:s0 tclass=file permissive=0
 
+```
+
+
+DNS server /var/log/messages
+```
+Mar 28 22:40:43 localhost python: SELinux is preventing /usr/sbin/named from create access on the file named.ddns.lab.view1.jnl.#012#012*****  Plugin catchall_labels (83.8 confidence) suggests   *******************#012#012If you want to allow named to have create access on the named.ddns.lab.view1.jnl file#012Then you need to change the label on named.ddns.lab.view1.jnl#012Do#012# semanage fcontext -a -t FILE_TYPE 'named.ddns.lab.view1.jnl'#012where FILE_TYPE is one of the following: dnssec_trigger_var_run_t, ipa_var_lib_t, krb5_host_rcache_t, krb5_keytab_t, named_cache_t, named_log_t, named_tmp_t, named_var_run_t, named_zone_t.#012Then execute:#012restorecon -v 'named.ddns.lab.view1.jnl'#012#012#012*****  Plugin catchall (17.1 confidence) suggests   **************************#012#012If you believe that named should be allowed create access on the named.ddns.lab.view1.jnl file by default.#012Then you should report this as a bug.#012You can generate a local policy module to allow this access.#012Do#012allow this access for now by executing:#012# ausearch -c 'isc-worker0000' --raw | audit2allow -M my-iscworker0000#012# semodule -i my-iscworker0000.pp#012
+Mar 28 22:47:37 localhost named[5181]: client @0x7f038803c3e0 192.168.50.15#40293/key zonetransfer.key: view view1: signer "zonetransfer.key" approved
+Mar 28 22:48:32 localhost named[5181]: client @0x7f038803c3e0 192.168.50.15#49971/key zonetransfer.key: view view1: signer "zonetransfer.key" approved
+Mar 28 22:48:32 localhost named[5181]: client @0x7f038803c3e0 192.168.50.15#49971/key zonetransfer.key: view view1: updating zone 'ddns.lab/IN': adding an RR at 'www.ddns.lab' A 192.168.50.15
+Mar 28 22:48:32 localhost named[5181]: /etc/named/dynamic/named.ddns.lab.view1.jnl: create: permission denied
+Mar 28 22:48:32 localhost named[5181]: client @0x7f038803c3e0 192.168.50.15#49971/key zonetransfer.key: view view1: updating zone 'ddns.lab/IN': error: journal open failed: unexpected error
+Mar 28 22:48:35 localhost dbus[338]: [system] Activating service name='org.fedoraproject.Setroubleshootd' (using servicehelper)
+Mar 28 22:48:35 localhost dbus[338]: [system] Successfully activated service 'org.fedoraproject.Setroubleshootd'
+Mar 28 22:48:35 localhost setroubleshoot: SELinux is preventing /usr/sbin/named from create access on the file named.ddns.lab.view1.jnl. For complete SELinux messages run: sealert -l 0aaefc5a-efb3-4d97-bd5a-571ef1e772d0
+```
+
+Команды на клиенте:
+```
+[vagrant@client ~]$ nsupdate -k /etc/named.zonetransfer.key
+server 192.168.50.10
+zone ddns.lab
+update add www.ddns.lab. 60 A 192.168.50.15
+send
+update failed: SERVFAIL
+>
+```
+
+Решение из лога
+```
+semanage fcontext -a -t FILE_TYPE 'named.ddns.lab.view1.jnl'
+restorecon -v 'named.ddns.lab.view1.jnl'
+
+ausearch -c 'isc-worker0000' --raw | audit2allow -M my-iscworker0000#012
+semodule -i my-iscworker0000.pp#012
+```
 
 
 

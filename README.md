@@ -242,49 +242,137 @@ http_port_t                    tcp      8111, 80, 81, 443, 488, 8008, 8009, 8443
 
 
 ## Часть II. Обеспечить работоспособность приложения при включенном selinux.
-Ошибки в логе SELinux на DNS Server'е (/var/log/audit/audit.log):
+<details>
+  <summary>Задача:</summary>
+   
 ```
-type=USER_AUTH msg=audit(1616970898.538:1965): pid=25733 uid=0 auid=1000 ses=6 subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 msg='op=PAM:authentication grantors=pam_rootok acct="root" exe="/usr/bin/su" hostname=ns01 addr=? terminal=pts/0 res=success'
-type=USER_ACCT msg=audit(1616970898.538:1966): pid=25733 uid=0 auid=1000 ses=6 subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 msg='op=PAM:accounting grantors=pam_succeed_if acct="root" exe="/usr/bin/su" hostname=ns01 addr=? terminal=pts/0 res=success'
-type=CRED_ACQ msg=audit(1616970898.538:1967): pid=25733 uid=0 auid=1000 ses=6 subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 msg='op=PAM:setcred grantors=pam_rootok acct="root" exe="/usr/bin/su" hostname=ns01 addr=? terminal=pts/0 res=success'
-type=USER_START msg=audit(1616970898.543:1968): pid=25733 uid=0 auid=1000 ses=6 subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 msg='op=PAM:session_open grantors=pam_keyinit,pam_limits,pam_systemd,pam_unix,pam_xauth acct="root" exe="/usr/bin/su" hostname=ns01 addr=? terminal=pts/0 res=success'
-type=AVC msg=audit(1616971239.425:1969): avc:  denied  { create } for  pid=5181 comm="isc-worker0000" name="named.ddns.lab.view1.jnl" scontext=system_u:system_r:named_t:s0 tcontext=system_u:object_r:etc_t:s0 tclass=file permissive=0
+  Инженер настроил следующую схему:
 
+    ns01 - DNS-сервер (192.168.50.10);
+    client - клиентская рабочая станция (192.168.50.15).
+
+При попытке удаленно (с рабочей станции) внести изменения в зону ddns.lab происходит следующее:
+
+[vagrant@client ~]$ nsupdate -k /etc/named.zonetransfer.key
+> server 192.168.50.10
+> zone ddns.lab
+> update add www.ddns.lab. 60 A 192.168.50.15
+> send
+update failed: SERVFAIL
+>
+
+Инженер перепроверил содержимое конфигурационных файлов и, убедившись, что с ними всё в порядке, предположил, что данная ошибка связана с SELinux.
 ```
+</details>
 
 
-DNS server /var/log/messages
-```
-Mar 28 22:40:43 localhost python: SELinux is preventing /usr/sbin/named from create access on the file named.ddns.lab.view1.jnl.#012#012*****  Plugin catchall_labels (83.8 confidence) suggests   *******************#012#012If you want to allow named to have create access on the named.ddns.lab.view1.jnl file#012Then you need to change the label on named.ddns.lab.view1.jnl#012Do#012# semanage fcontext -a -t FILE_TYPE 'named.ddns.lab.view1.jnl'#012where FILE_TYPE is one of the following: dnssec_trigger_var_run_t, ipa_var_lib_t, krb5_host_rcache_t, krb5_keytab_t, named_cache_t, named_log_t, named_tmp_t, named_var_run_t, named_zone_t.#012Then execute:#012restorecon -v 'named.ddns.lab.view1.jnl'#012#012#012*****  Plugin catchall (17.1 confidence) suggests   **************************#012#012If you believe that named should be allowed create access on the named.ddns.lab.view1.jnl file by default.#012Then you should report this as a bug.#012You can generate a local policy module to allow this access.#012Do#012allow this access for now by executing:#012# ausearch -c 'isc-worker0000' --raw | audit2allow -M my-iscworker0000#012# semodule -i my-iscworker0000.pp#012
-Mar 28 22:47:37 localhost named[5181]: client @0x7f038803c3e0 192.168.50.15#40293/key zonetransfer.key: view view1: signer "zonetransfer.key" approved
-Mar 28 22:48:32 localhost named[5181]: client @0x7f038803c3e0 192.168.50.15#49971/key zonetransfer.key: view view1: signer "zonetransfer.key" approved
-Mar 28 22:48:32 localhost named[5181]: client @0x7f038803c3e0 192.168.50.15#49971/key zonetransfer.key: view view1: updating zone 'ddns.lab/IN': adding an RR at 'www.ddns.lab' A 192.168.50.15
-Mar 28 22:48:32 localhost named[5181]: /etc/named/dynamic/named.ddns.lab.view1.jnl: create: permission denied
-Mar 28 22:48:32 localhost named[5181]: client @0x7f038803c3e0 192.168.50.15#49971/key zonetransfer.key: view view1: updating zone 'ddns.lab/IN': error: journal open failed: unexpected error
-Mar 28 22:48:35 localhost dbus[338]: [system] Activating service name='org.fedoraproject.Setroubleshootd' (using servicehelper)
-Mar 28 22:48:35 localhost dbus[338]: [system] Successfully activated service 'org.fedoraproject.Setroubleshootd'
-Mar 28 22:48:35 localhost setroubleshoot: SELinux is preventing /usr/sbin/named from create access on the file named.ddns.lab.view1.jnl. For complete SELinux messages run: sealert -l 0aaefc5a-efb3-4d97-bd5a-571ef1e772d0
-```
-
-Команды на клиенте:
+Разворачиваем [стенд](https://github.com/mbfx/otus-linux-adm/tree/master/selinux_dns_problems) `vagrant up` и заходим на клиент `vagrant ssh client`. 
+Выполняем запрос на обновление зоны DNS: 
 ```
 [vagrant@client ~]$ nsupdate -k /etc/named.zonetransfer.key
-server 192.168.50.10
-zone ddns.lab
-update add www.ddns.lab. 60 A 192.168.50.15
-send
+> server 192.168.50.10
+> zone ddns.lab
+> update add www.ddns.lab. 60 A 192.168.50.15
+> send
 update failed: SERVFAIL
 >
 ```
-
-Решение из лога
+Ошибки в логе SELinux на DNS Server'е (/var/log/audit/audit.log):
 ```
-semanage fcontext -a -t FILE_TYPE 'named.ddns.lab.view1.jnl'
-restorecon -v 'named.ddns.lab.view1.jnl'
-
-ausearch -c 'isc-worker0000' --raw | audit2allow -M my-iscworker0000#012
-semodule -i my-iscworker0000.pp#012
+[root@ns01 ~]# cat /var/log/audit/audit.log | grep denied
+type=AVC msg=audit(1616979951.515:2004): avc:  denied  { create } for  pid=5181 comm="isc-worker0000" name="named.ddns.lab.view1.jnl" scontext=system_u:system_r:named_t:s0 tcontext=system_u:object_r:etc_t:s0 tclass=file permissive=0
 ```
 
+Используем утилиту `sealert` для анализа ошибок в логе: 
+```
+[root@ns01 ~]# sealert -a /var/log/audit/audit.log
+100% done
+found 1 alerts in /var/log/audit/audit.log
+--------------------------------------------------------------------------------
 
+Traceback (most recent call last):
+  File "/bin/sealert", line 510, in on_analyzer_state_change
+    self.output_results()
+  File "/bin/sealert", line 524, in output_results
+    print siginfo.format_text()
+UnicodeEncodeError: 'ascii' codec can't encode characters in position 8-16: ordinal not in range(128)
+```
 
+Далее идем в `/var/log/messages`:
+```
+[root@ns01 ~]# tail -n 20  /var/log/messages | grep audit2allow
+Mar 29 01:05:55 localhost python: SELinux is preventing /usr/sbin/named from create access on the file named.ddns.lab.view1.jnl.#012#012*****  Plugin catchall_labels (83.8 confidence) suggests   *******************#012#012If you want to allow named to have create access on the named.ddns.lab.view1.jnl file#012Then you need to change the label on named.ddns.lab.view1.jnl#012Do#012# semanage fcontext -a -t FILE_TYPE 'named.ddns.lab.view1.jnl'#012where FILE_TYPE is one of the following: dnssec_trigger_var_run_t, ipa_var_lib_t, krb5_host_rcache_t, krb5_keytab_t, named_cache_t, named_log_t, named_tmp_t, named_var_run_t, named_zone_t.#012Then execute:#012restorecon -v 'named.ddns.lab.view1.jnl'#012#012#012*****  Plugin catchall (17.1 confidence) suggests   **************************#012#012If you believe that named should be allowed create access on the named.ddns.lab.view1.jnl file by default.#012Then you should report this as a bug.#012You can generate a local policy module to allow this access.#012Do#012allow this access for now by executing:#012# ausearch -c 'isc-worker0000' --raw | audit2allow -M my-iscworker0000#012# semodule -i my-iscworker0000.pp#012
+```
+
+Находим подсказку `ausearch -c 'isc-worker0000' --raw | audit2allow -M my-iscworker0000 #012# semodule -i my-iscworker0000.pp`. 
+Добавляем модуль:
+```
+[root@ns01 ~]# ausearch -c 'isc-worker0000' --raw | audit2allow -M my-iscworker0000                                     
+******************** IMPORTANT ***********************
+To make this policy package active, execute:
+
+semodule -i my-iscworker0000.pp
+
+[root@ns01 ~]# semodule -i my-iscworker0000.pp
+[root@ns01 ~]# semodule --list-modules=full | grep my-iscworker
+400 my-iscworker0000  pp 
+```
+Пробуем перезапустить `nsupdate`, но снова получаем ту же ошибку `update failed: SERVFAIL`. Проверяем логи: 
+```
+[root@ns01 ~]# cat /var/log/audit/audit.log | grep denied
+type=AVC msg=audit(1616979951.515:2004): avc:  denied  { create } for  pid=5181 comm="isc-worker0000" name="named.ddns.lab.view1.jnl" scontext=system_u:system_r:named_t:s0 tcontext=system_u:object_r:etc_t:s0 tclass=file permissive=0
+type=AVC msg=audit(1616981098.970:2007): avc:  denied  { write } for  pid=5181 comm="isc-worker0000" path="/etc/named/dynamic/named.ddns.lab.view1.jnl" dev="sda1" ino=5055621 scontext=system_u:system_r:named_t:s0 tcontext=system_u:object_r:etc_t:s0 tclass=file permissive=0
+type=AVC msg=audit(1616981324.828:2008): avc:  denied  { write } for  pid=5181 comm="isc-worker0000" name="named.ddns.lab.view1.jnl" dev="sda1" ino=5055621 scontext=system_u:system_r:named_t:s0 tcontext=system_u:object_r:etc_t:s0 tclass=file permissive=0
+```
+Обращаем внимание, что причина `denied` изменилась с `{ create }` на `{ write }`. Идем по указанному пути `path="/etc/named/dynamic/named.ddns.lab.view1.jnl"`
+```
+[root@ns01 ~]# cd /etc/named/dynamic/  
+[root@ns01 dynamic]# ls
+named.ddns.lab  named.ddns.lab.view1  named.ddns.lab.view1.jnl
+```
+Видим что файл пустой. Пробуем его удалить `rm named.ddns.lab.view1.jnl` и перезапускаем сервис DNS `systemctl restart named`
+
+Снова пробуем обновить DNS запись:
+```
+[root@client ~]# nsupdate -k /etc/named.zonetransfer.key
+> server 192.168.50.10
+> zone ddns.lab
+> update add www.ddns.lab. 60 A 192.168.50.15
+> send
+> quit
+```
+Обновленно успешно. 
+<details>
+  <summary>Пробуем обратиться к сервису DNS:</summary>
+
+```
+[root@client ~]# dig www.ddns.lab
+
+; <<>> DiG 9.11.4-P2-RedHat-9.11.4-26.P2.el7_9.4 <<>> www.ddns.lab
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 4847
+;; flags: qr aa rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 1, ADDITIONAL: 2
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 4096
+;; QUESTION SECTION:
+;www.ddns.lab.			IN	A
+
+;; ANSWER SECTION:
+www.ddns.lab.		60	IN	A	192.168.50.15
+
+;; AUTHORITY SECTION:
+ddns.lab.		3600	IN	NS	ns01.dns.lab.
+
+;; ADDITIONAL SECTION:
+ns01.dns.lab.		3600	IN	A	192.168.50.10
+
+;; Query time: 3 msec
+;; SERVER: 192.168.50.10#53(192.168.50.10)
+;; WHEN: Mon Mar 29 01:52:41 UTC 2021
+;; MSG SIZE  rcvd: 96
+```
+</details>
+
+Итог: Selinux блокировал доступ к обновлению файлов для сервиса DNS и файлам к которым обращается DNS. Возможные решения - скомпилировнанные модули SELinux или изменение контекста безопасности.

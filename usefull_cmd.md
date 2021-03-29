@@ -51,28 +51,34 @@ unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 root 2075 0.0  0.2 12500 6
 ```
 #### Список разрешенных портов:
 ALL: 
+```
 semanage port -l
+```
 
 HTTP:
+```
 semanage port -l | grep -w http_port_t
 ```
-http_port_t                    tcp      80, 81, 443, 488, 8008, 8009, 8443, 9000
+
 ```
+http_port_t                    tcp      80, 81, 443, 488, 8008, 8009, 8443, 9000
+
 semanage port -a -t http_port_t -p tcp 8111  - добавить порт 8111
 semanage port -d -t http_port -p tcp 8111    - Удалить порт
+```
 
 #### Логирование
-less /var/log/audit/audit.log
+`less /var/log/audit/audit.log`
 Или **sealert** - покажет только ошибки 
-(sudo yum install setroubleshoot + sealert -a /var/log/audit/audit.log)
+`sudo yum install setroubleshoot + sealert -a /var/log/audit/audit.log`
 
 #### Модули
-semodule --list-modules=full     - Установленные модули
-semodule -l                      - Список всех активных модулей
-semodule -r <module_name>        - Удалить модуль 
+`semodule --list-modules=full`     - Установленные модули
+`semodule -l`                      - Список всех активных модулей
+`semodule -r <module_name>`        - Удалить модуль 
 
 
 #### Флаги
-getsebool -a                     - Состояние флагов
-setsebool -P <флаг> on/off       - Изменить состояние флага
-(setsebool -P httpd_can_network_connect on)
+`getsebool -a`                     - Состояние флагов
+`setsebool -P <флаг> on/off`       - Изменить состояние флага
+`setsebool -P httpd_can_network_connect on`
